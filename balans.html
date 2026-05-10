@@ -235,6 +235,34 @@
     const passiveAccounts = ['02','05','42','59','60','63','66','67', '68', '69', '70','77','80','82','83', '84', '96','98'];
     const contraAccounts = ['02', '05'];
 
+    const accountNames = {
+      '01': 'Основные средства', '02': 'Амортизация основных средств', '03': 'Доходные вложения в материальные ценности',
+      '04': 'Нематериальные активы', '05': 'Амортизация нематерильных активов', '07': 'Оборудование к установке',
+      '08': 'Вложения во внеоборотные активы', '09': 'Отложенные налоговые активы', '10': 'Материалы',
+      '11': 'Животные на выращивании и откорме', '14': 'Резервы под снижение стоимости материальных ценностей',
+      '15': 'Заготовление и приобретение материальных ценностей', '16': 'Отклонение в стоимости материальных ценностей',
+      '19': 'Налог на добавленную стоимость по приобретенным ценностям', '20': 'Основное производство',
+      '21': 'Полуфабрикаты собственного производства', '23': 'Вспомогательные производства',
+      '25': 'Общепроизводственные расходы', '26': 'Общехозяйственные расходы', '28': 'Брак в производстве',
+      '29': 'Обслуживающие производства и хозяйства', '40': 'Выпуск продукции (работ, услуг)',
+      '41': 'Товары', '42': 'Торговая наценка', '43': 'Готовая продукция', '44': 'Расходы на продажу',
+      '45': 'Товары отгруженные', '46': 'Выполненные этапы по незавершенным работам', '50': 'Касса',
+      '51': 'Расчетные счета', '52': 'Валютные счета', '55': 'Специальные счета в банках',
+      '57': 'Переводы в пути', '58': 'Финансовые вложения', '59': 'Резервы под обесценение финансовых вложений',
+      '60': 'Расчеты с поставщиками и подрядчиками', '62': 'Расчеты с покупателями и заказчиками',
+      '63': 'Резервы по сомнительным долгам', '66': 'Расчеты по краткосрочным кредитам и займам',
+      '67': 'Расчеты по долгосрочным кредитам и займам', '68': 'Расчеты по налогам и сборам',
+      '69': 'Расчеты по социальному страхованию и обеспечению', '70': 'Расчеты с персоналом по оплате труда',
+      '71': 'Расчеты с подотчетными лицами', '73': 'Расчеты с персоналом по прочим операциям',
+      '75': 'Расчеты с учредителями', '76': 'Расчеты с разными дебиторами и кредиторами',
+      '77': 'Отложенные налоговые обязательства', '79': 'Внутрихозяйственные расчеты',
+      '80': 'Уставный капитал', '81': 'Собственные акции (доли)', '82': 'Резервный капитал',
+      '83': 'Добавочный капитал', '84': 'Нераспределенная прибыль (непокрытый убыток)',
+      '86': 'Целевое финансирование', '90': 'Продажи', '91': 'Прочие доходы и расходы',
+      '94': 'Недостачи и потери от порчи ценностей', '96': 'Резервы предстоящих расходов',
+      '97': 'Расходы будущих периодов', '98': 'Доходы будущих периодов', '99': 'Прибыли и убытки'
+    };
+
     window.addEventListener('DOMContentLoaded', () => {
       addOperationRow('debit');
       addOperationRow('credit');
@@ -352,7 +380,7 @@
       if (!code) return;
       const normCode = code.replace(/\s/g, '').padStart(2, '0');
       if (!accountRegistry[normCode]) {
-        accountRegistry[normCode] = { name: `Счет ${normCode}`, type, sn, od, ok, sk };
+        accountRegistry[normCode] = { name: accountNames[normCode] || `Счет ${normCode}`, type, sn, od, ok, sk };
       } else {
         accountRegistry[normCode].type = type;
         accountRegistry[normCode].sn = sn;
@@ -402,7 +430,7 @@
 
       const normCode = code.replace(/\D/g, '').padStart(2, '0');
       if (!accountRegistry[normCode]) {
-        accountRegistry[normCode] = { name: `Счет ${normCode}`, type, sn: 0, od: 0, ok: 0, sk: 0 };
+        accountRegistry[normCode] = { name: accountNames[normCode] || `Счет ${normCode}`, type, sn: 0, od: 0, ok: 0, sk: 0 };
       }
       accountRegistry[normCode].type = type;
       accountRegistry[normCode].sn = amount;
@@ -557,6 +585,8 @@
         return;
       }
 
+      let totalSnDr = 0, totalSnCr = 0, totalOd = 0, totalOk = 0, totalSkDr = 0, totalSkCr = 0;
+
       existingCodes.forEach(code => {
         const data = accountRegistry[code];
         if (!data.sn && !data.od && !data.ok) return;
@@ -565,27 +595,47 @@
           ? (data.type === 'active' ? data.sn + data.od - data.ok : data.sn + data.ok - data.od) 
           : data.sk;
         const isPop = data.od !== 0 || data.ok !== 0 || data.sn !== 0;
-        const snDr = data.type === 'active' ? (data.sn ? formatter.format(data.sn) : '') : '';
-        const snCr = data.type === 'passive' ? (data.sn ? formatter.format(data.sn) : '') : '';
+        const snDr = data.type === 'active' ? data.sn : 0;
+        const snCr = data.type === 'passive' ? data.sn : 0;
         const odV = data.od ? formatter.format(data.od) : '';
         const okV = data.ok ? formatter.format(data.ok) : '';
-        const skDr = data.type === 'active' ? (effectiveSk ? formatter.format(effectiveSk) : '') : '';
-        const skCr = data.type === 'passive' ? (effectiveSk ? formatter.format(effectiveSk) : '') : '';
+        const skDr = data.type === 'active' ? effectiveSk : 0;
+        const skCr = data.type === 'passive' ? effectiveSk : 0;
 
+        totalSnDr += snDr;
+        totalSnCr += snCr;
+        totalOd += data.od;
+        totalOk += data.ok;
+        totalSkDr += skDr;
+        totalSkCr += skCr;
+
+        const nameValue = data.name || accountNames[code] || '';
+        
         tableBody.innerHTML += `
           <tr class="border-b border-slate-200 hover:bg-blue-50 transition ${isPop ? 'bg-white' : 'bg-slate-50/50'}">
             <td class="px-2 py-1.5 font-mono font-bold text-slate-500 border-r border-slate-300">${code}</td>
             <td class="px-2 py-1.5 border-r border-slate-300">
-              <input type="text" value="${data.name}" class="w-full bg-transparent text-xs outline-none focus:bg-white focus:ring-1 focus:ring-blue-300 rounded px-1" onchange="if(accountRegistry['${code}'])accountRegistry['${code}'].name=this.value">
+              <input type="text" value="${nameValue}" class="w-full bg-transparent text-xs outline-none focus:bg-white focus:ring-1 focus:ring-blue-300 rounded px-1" onchange="if(accountRegistry['${code}'])accountRegistry['${code}'].name=this.value">
             </td>
-            <td class="px-2 py-1.5 text-right font-mono text-xs border-r border-slate-300 ${data.type==='active'?'font-semibold text-slate-700':'text-slate-400'}">${snDr}</td>
-            <td class="px-2 py-1.5 text-right font-mono text-xs border-r border-slate-300 ${data.type==='passive'?'font-semibold text-slate-700':'text-slate-400'}">${snCr}</td>
+            <td class="px-2 py-1.5 text-right font-mono text-xs border-r border-slate-300 ${data.type==='active'?'font-semibold text-slate-700':'text-slate-400'}">${snDr ? formatter.format(snDr) : ''}</td>
+            <td class="px-2 py-1.5 text-right font-mono text-xs border-r border-slate-300 ${data.type==='passive'?'font-semibold text-slate-700':'text-slate-400'}">${snCr ? formatter.format(snCr) : ''}</td>
             <td class="px-2 py-1.5 text-right font-mono text-xs font-medium text-blue-700 border-r border-slate-300">${odV}</td>
             <td class="px-2 py-1.5 text-right font-mono text-xs font-medium text-red-700 border-r border-slate-300">${okV}</td>
-            <td class="px-2 py-1.5 text-right font-mono text-xs font-bold text-green-700 border-r border-slate-300 bg-green-50/20">${skDr}</td>
-            <td class="px-2 py-1.5 text-right font-mono text-xs font-bold text-green-700 bg-green-50/20">${skCr}</td>
+            <td class="px-2 py-1.5 text-right font-mono text-xs font-bold text-green-700 border-r border-slate-300 bg-green-50/20">${skDr ? formatter.format(skDr) : ''}</td>
+            <td class="px-2 py-1.5 text-right font-mono text-xs font-bold text-green-700 bg-green-50/20">${skCr ? formatter.format(skCr) : ''}</td>
           </tr>`;
       });
+
+      tableBody.innerHTML += `
+        <tr class="border-b border-slate-300 bg-slate-100 font-bold">
+          <td class="px-2 py-2 border-r border-slate-300" colspan="2">Итого</td>
+          <td class="px-2 py-2 text-right font-mono text-xs border-r border-slate-300">${formatter.format(totalSnDr)}</td>
+          <td class="px-2 py-2 text-right font-mono text-xs border-r border-slate-300">${formatter.format(totalSnCr)}</td>
+          <td class="px-2 py-2 text-right font-mono text-xs border-r border-slate-300">${formatter.format(totalOd)}</td>
+          <td class="px-2 py-2 text-right font-mono text-xs border-r border-slate-300">${formatter.format(totalOk)}</td>
+          <td class="px-2 py-2 text-right font-mono text-xs border-r border-slate-300">${formatter.format(totalSkDr)}</td>
+          <td class="px-2 py-2 text-right font-mono text-xs">${formatter.format(totalSkCr)}</td>
+        </tr>`;
     }
 
     const excludedFromBalance = ['90', '91', '99'];
